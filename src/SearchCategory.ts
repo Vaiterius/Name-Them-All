@@ -1,4 +1,4 @@
-enum Category {
+const enum Category {
     Women = "Women",
     Men = "Men"
 }
