@@ -1,11 +1,13 @@
+import Category from "../SearchCategory";
+
 const ENDPOINT: string = "https://query.wikidata.org/sparql";
 
-export interface WikidataWoman {
+export interface WikidataPerson {
     name: string;
     occupation: string;
 }
 
-function buildQuery(name: string): string {
+function getWomanQuery(name: string): string {
   return `
     SELECT ?woman ?womanLabel ?occupationLabel
     WHERE {
@@ -26,9 +28,35 @@ function buildQuery(name: string): string {
   `
 }
 
-export async function searchWoman(name: string): Promise<WikidataWoman | null> {
+function getManQuery(name: string): string {
+  return `
+    SELECT ?man ?manLabel ?occupationLabel
+    WHERE {
+      SERVICE wikibase:mwapi {
+        bd:serviceParam wikibase:api "EntitySearch" ;
+                        wikibase:endpoint "www.wikidata.org" ;
+                        mwapi:search "${name}" ;
+                        mwapi:language "en" .
+        ?man wikibase:apiOutputItem mwapi:item .
+      }
+      ?man wdt:P21  wd:Q6581097 ;
+           wdt:P106 ?occupation .
+      SERVICE wikibase:label {
+        bd:serviceParam wikibase:language "en" .
+      }
+    }
+    LIMIT 1
+  `
+}
+
+export async function searchPerson(name: string, category: Category): Promise<WikidataPerson | null> {
     // Encode to include URL-safe characters.
-    const url = `${ENDPOINT}?query=${encodeURIComponent(buildQuery(name))}&format=json`;
+    let url = ''
+    if (category === Category.Women) {
+      url = `${ENDPOINT}?query=${encodeURIComponent(getWomanQuery(name))}&format=json`;
+    } else if (category === Category.Men) {
+      url = `${ENDPOINT}?query=${encodeURIComponent(getManQuery(name))}&format=json`;
+    }
 
     const response = await fetch(url, {
         // Make sure wikidata sends back in json.
@@ -51,8 +79,9 @@ export async function searchWoman(name: string): Promise<WikidataWoman | null> {
 
     if (results.length === 0) return null;
 
+    const label = category === Category.Women ? "womanLabel": "manLabel";
     return {
-        name: results[0].womanLabel.value,
+        name: results[0][label].value,
         occupation: results[0].occupationLabel.value,
     }
 }

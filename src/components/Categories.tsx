@@ -1,14 +1,19 @@
-import CategoryButton from "./CategoryButton";
+import { useState } from "react";
 
 import Category from "../SearchCategory";
 
 function Categories() {
+    const [activeCategory, setActiveCategory] = useState<Category>(Category.None);
+
     return (
         <div>
-            Can you name 10
-            <CategoryButton value={Category.Women}/>
-            <CategoryButton value={Category.Men} />
-            ?
+            <p>Selected: { activeCategory }</p>
+            <div>
+                Can you name 10
+                <button onClick={() => setActiveCategory(Category.Women)} className="btn">{ Category.Women }</button>
+                <button onClick={() => setActiveCategory(Category.Men)} className="btn">{ Category.Men }</button>
+                ?
+            </div>
         </div>
     )
 }
