@@ -24,17 +24,31 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<Category>(Category.None);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<WikidataPerson[]>([]);
+  const [result, setResult] = useState<WikidataPerson | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(event: React.SubmitEvent) {
     event.preventDefault();  // Prevent page reload.
     if (!query.trim()) return;  // Nothing is typed in.
 
+    setIsLoading(true);
+
     // Only search if a category is selected.
     if (activeCategory !== Category.None) {
       console.log("Query: " + query);
-      const result = await searchPerson(query, activeCategory);
+
+      // Quit after 3 seconds of no results.
+      const result = await Promise.race([
+        searchPerson(query, activeCategory),
+        new Promise<null>(resolve => setTimeout(() => resolve(null), 3000))
+      ]);
+
+      setResult(result);
       
-      if (!result) return
+      if (!result) {
+        setIsLoading(false);
+        return;
+      }
 
       console.log("Result: " + result.name + ", " + result.occupation)
 
@@ -45,6 +59,7 @@ function App() {
 
       console.log(results)
     }
+    setIsLoading(false);
   }
 
   return (
@@ -66,8 +81,10 @@ function App() {
       {/* Search Bar */}
       <form onSubmit={handleSubmit}>
           <input type="text" value={query} placeholder="Search for a name" onChange={(event) => setQuery(event.target.value)} className="input"/>
-          <button type="submit" className="btn">Search</button>
+          {isLoading ? <span className="loading loading-spinner loading-lg"></span> : <button type="submit" className="btn">Search</button>}
       </form>
+
+      {(result === null && results.length > 0) && "No person found"}
 
       {/* Results list */}
       <ul>
